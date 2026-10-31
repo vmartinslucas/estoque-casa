@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Permite "Adicionar à Tela de Início" no iPhone e abrir como app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Estoque">
+  <title>Estoque de Casa</title>
+
+  <style>
+    /* ===== Cores (modo claro) ===== */
+    :root {
+      --fundo: #f2f2f7;
+      --cartao: #ffffff;
+      --texto: #1c1c1e;
+      --texto-suave: #6e6e73;
+      --borda: #e5e5ea;
+      --destaque: #0a84ff;
+      --nivel-0: #ff3b30; /* Acabou */
+      --nivel-1: #ff9500; /* Pouco */
+      --nivel-2: #ffcc00; /* Metade */
+      --nivel-3: #8fd14f; /* Bastante */
+      --nivel-4: #34c759; /* Cheio */
+    }
+
+    /* ===== Cores (modo escuro) ===== */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fundo: #000000;
+        --cartao: #1c1c1e;
+        --texto: #f2f2f7;
+        --texto-suave: #98989f;
+        --borda: #38383a;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--fundo);
+      color: var(--texto);
+      padding: env(safe-area-inset-top) 16px calc(90px + env(safe-area-inset-bottom));
+    }
+
+    header { padding: 20px 0 8px; }
+    h1 { font-size: 32px; margin: 0; }
+    .subtitulo { color: var(--texto-suave); margin: 4px 0 0; }
+
+    /* ===== Formulário para adicionar item ===== */
+    form {
+      display: flex;
+      gap: 8px;
+      margin: 16px 0;
+    }
+    input, select, button { font: inherit; }
+    input[type="text"], input[type="password"] {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      background: var(--cartao);
+      color: var(--texto);
+    }
+    .botao-principal {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      background: var(--destaque);
+      color: white;
+      font-weight: 600;
+    }
+
+    /* ===== Cartões dos itens ===== */
+    .lista { display: flex; flex-direction: column; gap: 10px; }
+
+    .item {
+      background: var(--cartao);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .item-topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .item-nome { font-weight: 600; font-size: 17px; }
+    .item-nivel { font-size: 14px; color: var(--texto-suave); }
+
+    /* Barra que mostra o nível visualmente */
+    .barra {
+      height: 8px;
+      background: var(--borda);
+      border-radius: 4px;
+      margin: 10px 0;
+      overflow: hidden;
+    }
+    .barra-preenchida {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.25s, background 0.25s;
+    }
+
+    .item-acoes { display: flex; gap: 8px; }
+    .item-acoes button {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--borda);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--texto);
+    }
+    .item-acoes button:disabled { opacity: 0.35; }
+    .botao-apagar {
+      flex: 0 0 auto !important;
+      color: var(--nivel-0) !important;
+    }
+
+    /* ===== Lista de compras ===== */
+    .compra {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--cartao);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .compra-nome { flex: 1; font-size: 17px; }
+    .compra .botao-principal { padding: 8px 12px; font-size: 15px; }
+
+    .vazio {
+      text-align: center;
+      color: var(--texto-suave);
+      padding: 40px 0;
+    }
+
+    /* ===== Abas na parte de baixo (estilo iPhone) ===== */
+    nav {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      background: var(--cartao);
+      border-top: 1px solid var(--borda);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    nav button {
+      flex: 1;
+      padding: 12px 0;
+      border: none;
+      background: none;
+      color: var(--texto-suave);
+      font-size: 13px;
+    }
+    nav button .icone { display: block; font-size: 22px; }
+    nav button.ativa { color: var(--destaque); font-weight: 600; }
+    .contador {
+      background: var(--nivel-0);
+      color: white;
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 12px;
+      margin-left: 4px;
+    }
+
+    /* ===== Tela de login ===== */
+    #tela-login {
+      max-width: 360px;
+      margin: 15vh auto 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #tela-login input { flex: none; }
+    .erro { color: var(--nivel-0); min-height: 1.2em; margin: 0; }
+
+    .cabecalho-linha {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .botao-sair {
+      border: none;
+      background: none;
+      color: var(--destaque);
+      font-size: 15px;
+    }
+
+    /* !important garante que esconder sempre vence, mesmo contra regras com # (id) */
+    .escondido { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Tela de login ===== -->
+  <form id="tela-login" class="escondido">
+    <h1>🏠 Estoque</h1>
+    <p class="subtitulo">Entre para ver o estoque da casa</p>
+    <input type="text" id="login-email" placeholder="E-mail" autocomplete="username" inputmode="email" required>
+    <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" required>
+    <button type="submit" class="botao-principal">Entrar</button>
+    <p id="login-erro" class="erro"></p>
+  </form>
+
+  <!-- ===== O app (só aparece depois do login) ===== -->
+  <div id="app" class="escondido">
+
+  <!-- ===== Tela 1: Estoque ===== -->
+  <section id="tela-estoque">
+    <header>
+      <div class="cabecalho-linha">
+        <h1>Estoque</h1>
+        <button id="botao-sair" class="botao-sair">Sair</button>
+      </div>
+      <p class="subtitulo">Toque em − ou + para mudar o nível</p>
+    </header>
+
+    <form id="form-novo">
+      <input type="text" id="campo-nome" placeholder="Novo item (ex: Arroz)" autocomplete="off" required>
+      <button type="submit" class="botao-principal">Adicionar</button>
+    </form>
+
+    <div id="lista-estoque" class="lista"></div>
+  </section>
+
+  <!-- ===== Tela 2: Lista de compras ===== -->
+  <section id="tela-compras" class="escondido">
+    <header>
+      <h1>Compras</h1>
+      <p class="subtitulo">Itens que acabaram ou estão acabando</p>
+    </header>
+    <div id="lista-compras" class="lista"></div>
+  </section>
+
+  <!-- ===== Abas ===== -->
+  <nav>
+    <button id="aba-estoque" class="ativa"><span class="icone">🏠</span>Estoque</button>
+    <button id="aba-compras"><span class="icone">🛒</span>Compras<span id="contador" class="contador escondido"></span></button>
+  </nav>
+
+  </div>
+
+  <!-- type="module" permite usar "import" para carregar o Firebase -->
+  <script type="module">
+    // ============================================================
+    // 1. CONECTAR AO FIREBASE
+    // ============================================================
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp,
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Todos os itens ficam na "coleção" chamada itens, no banco online
+    const colecaoItens = collection(db, "itens");
+
+    // ============================================================
+    // 2. DADOS
+    // ============================================================
+
+    // Os 5 níveis possíveis de cada item, do vazio (0) ao cheio (4)
+    const NIVEIS = ["Acabou", "Pouco", "Metade", "Bastante", "Cheio"];
+
+    // Cópia local dos itens. É atualizada sozinha sempre que
+    // alguém (você ou sua esposa) muda algo no banco.
+    let itens = [];
+    let pararDeOuvir = null;
+
+    function buscarItem(id) {
+      return itens.find(function (i) { return i.id === id; });
+    }
+
+    // ============================================================
+    // 3. LOGIN
+    // ============================================================
+
+    // Chamado quando o app abre e sempre que alguém entra ou sai
+    onAuthStateChanged(auth, function (usuario) {
+      const logado = usuario !== null;
+      document.getElementById("tela-login").classList.toggle("escondido", logado);
+      document.getElementById("app").classList.toggle("escondido", !logado);
+
+      if (logado) {
+        comecarAOuvir();
+      } else if (pararDeOuvir) {
+        pararDeOuvir();
+        pararDeOuvir = null;
+      }
+    });
+
+    document.getElementById("tela-login").onsubmit = async function (evento) {
+      evento.preventDefault();
+      const email = document.getElementById("login-email").value.trim();
+      const senha = document.getElementById("login-senha").value;
+      const erro = document.getElementById("login-erro");
+      erro.textContent = "";
+      try {
+        await signInWithEmailAndPassword(auth, email, senha);
+      } catch (e) {
+        erro.textContent = "E-mail ou senha incorretos.";
+      }
+    };
+
+    document.getElementById("botao-sair").onclick = function () {
+      signOut(auth);
+    };
+
+    // "Ouve" o banco: toda mudança feita em qualquer celular chega aqui
+    function comecarAOuvir() {
+      pararDeOuvir = onSnapshot(colecaoItens, function (resultado) {
+        itens = resultado.docs.map(function (d) {
+          return Object.assign({ id: d.id }, d.data());
+        });
+        desenharEstoque();
+        desenharCompras();
+      }, function (erro) {
+        // Acontece se o e-mail não estiver na lista de acesso (firestore.rules)
+        alert("Sem permissão para ver o estoque. Peça para incluir seu e-mail.");
+        signOut(auth);
+      });
+    }
+
+    // ============================================================
+    // 4. AÇÕES (cada uma muda o banco; a tela se atualiza sozinha)
+    // ============================================================
+
+    function adicionarItem(nome) {
+      addDoc(colecaoItens, {
+        nome: nome,
+        nivel: 4, // item novo começa cheio
+        naLista: false,
+        criadoEm: serverTimestamp(),
+      });
+    }
+
+    function mudarNivel(id, quanto) {
+      const item = buscarItem(id);
+      const nivel = Math.min(4, Math.max(0, item.nivel + quanto));
+
+      // A regra principal do app: acabou → vai para a lista de compras
+      const naLista = nivel === 0 ? true : item.naLista;
+
+      updateDoc(doc(db, "itens", id), { nivel: nivel, naLista: naLista });
+    }
+
+    // Botão "Comprei": o item volta a ficar cheio e sai da lista
+    function marcarComprado(id) {
+      updateDoc(doc(db, "itens", id), { nivel: 4, naLista: false });
+    }
+
+    // Para itens com nível "Pouco": colocar ou tirar da lista manualmente
+    function alternarLista(id) {
+      updateDoc(doc(db, "itens", id), { naLista: !buscarItem(id).naLista });
+    }
+
+    function apagarItem(id) {
+      const item = buscarItem(id);
+      if (!confirm('Apagar "' + item.nome + '" do estoque?')) return;
+      deleteDoc(doc(db, "itens", id));
+    }
+
+    // ============================================================
+    // 5. DESENHAR A TELA
+    // ============================================================
+
+    function desenharEstoque() {
+      const lista = document.getElementById("lista-estoque");
+      lista.innerHTML = "";
+
+      if (itens.length === 0) {
+        lista.innerHTML = '<p class="vazio">Nenhum item ainda. Adicione o primeiro acima!</p>';
+        return;
+      }
+
+      // Mostra primeiro o que está mais vazio; empate → ordem alfabética
+      const ordenados = itens.slice().sort(function (a, b) {
+        return a.nivel - b.nivel || a.nome.localeCompare(b.nome);
+      });
+
+      ordenados.forEach(function (item) {
+        const cartao = document.createElement("div");
+        cartao.className = "item";
+
+        const largura = (item.nivel / 4) * 100;
+        const cor = "var(--nivel-" + item.nivel + ")";
+        const textoLista = item.naLista ? "Na lista ✓" : "+ Lista";
+
+        cartao.innerHTML =
+          '<div class="item-topo">' +
+            '<span class="item-nome"></span>' +
+            '<span class="item-nivel">' + NIVEIS[item.nivel] + '</span>' +
+          '</div>' +
+          '<div class="barra"><div class="barra-preenchida" style="width:' + largura + '%; background:' + cor + '"></div></div>' +
+          '<div class="item-acoes">' +
+            '<button data-acao="menos"' + (item.nivel === 0 ? " disabled" : "") + '>−</button>' +
+            '<button data-acao="mais"' + (item.nivel === 4 ? " disabled" : "") + '>+</button>' +
+            '<button data-acao="lista">' + textoLista + '</button>' +
+            '<button data-acao="apagar" class="botao-apagar">🗑</button>' +
+          '</div>';
+
+        // O nome é colocado com textContent por segurança
+        // (evita que um nome com símbolos estranhos quebre a página)
+        cartao.querySelector(".item-nome").textContent = item.nome;
+
+        cartao.querySelector('[data-acao="menos"]').onclick = function () { mudarNivel(item.id, -1); };
+        cartao.querySelector('[data-acao="mais"]').onclick = function () { mudarNivel(item.id, +1); };
+        cartao.querySelector('[data-acao="lista"]').onclick = function () { alternarLista(item.id); };
+        cartao.querySelector('[data-acao="apagar"]').onclick = function () { apagarItem(item.id); };
+
+        lista.appendChild(cartao);
+      });
+    }
+
+    function desenharCompras() {
+      const lista = document.getElementById("lista-compras");
+      const paraComprar = itens
+        .filter(function (i) { return i.naLista; })
+        .sort(function (a, b) { return a.nome.localeCompare(b.nome); });
+      lista.innerHTML = "";
+
+      // Atualiza o número vermelho na aba "Compras"
+      const contador = document.getElementById("contador");
+      contador.textContent = paraComprar.length;
+      contador.classList.toggle("escondido", paraComprar.length === 0);
+
+      if (paraComprar.length === 0) {
+        lista.innerHTML = '<p class="vazio">Nada para comprar. Estoque em dia! 🎉</p>';
+        return;
+      }
+
+      paraComprar.forEach(function (item) {
+        const linha = document.createElement("div");
+        linha.className = "compra";
+        linha.innerHTML =
+          '<span class="compra-nome"></span>' +
+          '<button class="botao-principal">Comprei</button>';
+        linha.querySelector(".compra-nome").textContent = item.nome;
+        linha.querySelector("button").onclick = function () { marcarComprado(item.id); };
+        lista.appendChild(linha);
+      });
+    }
+
+    // ============================================================
+    // 6. LIGAR OS BOTÕES E ABAS
+    // ============================================================
+
+    document.getElementById("form-novo").onsubmit = function (evento) {
+      evento.preventDefault(); // impede a página de recarregar
+      const campo = document.getElementById("campo-nome");
+      const nome = campo.value.trim();
+      if (nome) adicionarItem(nome);
+      campo.value = "";
+    };
+
+    function mostrarAba(qual) {
+      const estoque = qual === "estoque";
+      document.getElementById("tela-estoque").classList.toggle("escondido", !estoque);
+      document.getElementById("tela-compras").classList.toggle("escondido", estoque);
+      document.getElementById("aba-estoque").classList.toggle("ativa", estoque);
+      document.getElementById("aba-compras").classList.toggle("ativa", !estoque);
+    }
+
+    document.getElementById("aba-estoque").onclick = function () { mostrarAba("estoque"); };
+    document.getElementById("aba-compras").onclick = function () { mostrarAba("compras"); };
+  </script>
+</body>
+</html>
