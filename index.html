@@ -326,8 +326,14 @@
         desenharEstoque();
         desenharCompras();
       }, function (erro) {
-        // Acontece se o e-mail não estiver na lista de acesso (firestore.rules)
-        alert("Sem permissão para ver o estoque. Peça para incluir seu e-mail.");
+        // Normalmente acontece se o e-mail não estiver na lista de acesso (firestore.rules).
+        // Mostramos o e-mail e o código do erro para facilitar descobrir a causa.
+        const email = auth.currentUser ? auth.currentUser.email : "(nenhum)";
+        alert(
+          "Não foi possível abrir o estoque.\n\n" +
+          "E-mail conectado: " + email + "\n" +
+          "Erro: " + erro.code
+        );
         signOut(auth);
       });
     }
